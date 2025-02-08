@@ -4,7 +4,7 @@ from astrbot.api.event import filter, AstrMessageEvent, MessageEventResult
 from astrbot.api.star import Context, Star, register
 
 
-@register("keyword_reply_plugin", "开发者姓名", "自定义关键词回复插件", "1.0.0")
+@register("keyword_reply_plugin", "长安某", "自定义关键词回复插件", "1.0.0")
 class KeywordReplyPlugin(Star):
     def __init__(self, context: Context, config: dict = None):
         super().__init__(context)
