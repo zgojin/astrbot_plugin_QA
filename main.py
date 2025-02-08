@@ -4,7 +4,7 @@ from astrbot.api.event import filter, AstrMessageEvent, MessageEventResult
 from astrbot.api.star import Context, Star, register
 
 
-@register("keyword_reply_plugin", "长安某", "自定义关键词回复插件", "1.0.0")
+@register("keyword_reply_plugin", "开发者姓名", "自定义关键词回复插件", "1.0.0")
 class KeywordReplyPlugin(Star):
     def __init__(self, context: Context, config: dict = None):
         super().__init__(context)
@@ -14,6 +14,7 @@ class KeywordReplyPlugin(Star):
         self.question_answer_pairs = self.load_qa_pairs()
         self.waiting_for_answer = False
         self.current_question = ""
+        self.recording = False
 
     def load_qa_pairs(self):
         try:
@@ -29,6 +30,7 @@ class KeywordReplyPlugin(Star):
     @filter.command("开始记录")
     async def start_recording(self, event: AstrMessageEvent):
         self.waiting_for_answer = False
+        self.recording = True
         yield event.plain_result("正在记录")
 
     @filter.event_message_type(filter.EventMessageType.ALL)
@@ -37,16 +39,17 @@ class KeywordReplyPlugin(Star):
             answer = event.message_obj.message.strip()
             self.question_answer_pairs[self.current_question] = answer
             self.waiting_for_answer = False
+            self.recording = False
             self.save_qa_pairs()
             yield event.plain_result("已经成功记录问答")
-        elif self.is_recording():
+        elif self.recording:
             question = event.message_obj.message.strip()
             self.current_question = question
             self.waiting_for_answer = True
             yield event.plain_result("已经记录问题，请继续输入回答")
 
     def is_recording(self):
-        return bool(self.question_answer_pairs)
+        return self.recording
 
     @filter.event_message_type(filter.EventMessageType.ALL)
     async def auto_reply(self, event: AstrMessageEvent):
