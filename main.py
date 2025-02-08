@@ -1,18 +1,63 @@
+import re
+import json
 from astrbot.api.event import filter, AstrMessageEvent, MessageEventResult
 from astrbot.api.star import Context, Star, register
-from astrbot.api import logger
 
-@register("helloworld", "Your Name", "一个简单的 Hello World 插件", "1.0.0", "repo url")
-class MyPlugin(Star):
-    def __init__(self, context: Context):
+
+@register("keyword_reply_plugin", "开发者姓名", "自定义关键词回复插件", "1.0.0")
+class KeywordReplyPlugin(Star):
+    def __init__(self, context: Context, config: dict = None):
         super().__init__(context)
-    
-    # 注册指令的装饰器。指令名为 helloworld。注册成功后，发送 `/helloworld` 就会触发这个指令，并回复 `你好, {user_name}!`
-    @filter.command("helloworld")
-    async def helloworld(self, event: AstrMessageEvent):
-        '''这是一个 hello world 指令''' # 这是 handler 的描述，将会被解析方便用户了解插件内容。建议填写。
-        user_name = event.get_sender_name()
-        message_str = event.message_str # 用户发的纯文本消息字符串
-        message_chain = event.get_messages() # 用户所发的消息的消息链 # from astrbot.api.message_components import *
-        logger.info(message_chain)
-        yield event.plain_result(f"Hello, {user_name}, 你发了 {message_str}!") # 发送一条纯文本消息
+        if config is None:
+            config = {}
+        self.config = config
+        self.question_answer_pairs = self.load_qa_pairs()
+        self.waiting_for_answer = False
+        self.current_question = ""
+
+    def load_qa_pairs(self):
+        try:
+            with open('qa_pairs.json', 'r', encoding='utf-8') as f:
+                return json.load(f)
+        except (FileNotFoundError, json.JSONDecodeError):
+            return {}
+
+    def save_qa_pairs(self):
+        with open('qa_pairs.json', 'w', encoding='utf-8') as f:
+            json.dump(self.question_answer_pairs, f, ensure_ascii=False, indent=4)
+
+    @filter.command("开始记录")
+    async def start_recording(self, event: AstrMessageEvent):
+        self.waiting_for_answer = False
+        yield event.plain_result("正在记录")
+
+    @filter.event_message_type(filter.EventMessageType.ALL)
+    async def handle_message(self, event: AstrMessageEvent):
+        if self.waiting_for_answer:
+            answer = event.message_obj.message.strip()
+            self.question_answer_pairs[self.current_question] = answer
+            self.waiting_for_answer = False
+            self.save_qa_pairs()
+            yield event.plain_result("已经成功记录问答")
+        elif self.is_recording():
+            question = event.message_obj.message.strip()
+            self.current_question = question
+            self.waiting_for_answer = True
+            yield event.plain_result("已经记录问题，请继续输入回答")
+
+    def is_recording(self):
+        return bool(self.question_answer_pairs)
+
+    @filter.event_message_type(filter.EventMessageType.ALL)
+    async def auto_reply(self, event: AstrMessageEvent):
+        message = event.message_obj.message
+        for question, answer in self.question_answer_pairs.items():
+            if '%' in question:
+                pattern = re.escape(question.strip('%'))
+                if re.search(pattern, message):
+                    yield event.plain_result(answer)
+                    break
+            else:
+                if question == message:
+                    yield event.plain_result(answer)
+                    break
