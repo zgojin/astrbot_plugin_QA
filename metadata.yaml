@@ -1,6 +1,6 @@
 name: helloworld # 这是你的插件的唯一识别名。
-desc: 这是 AstrBot 的默认插件，支持关键词回复。 # 插件简短描述
-help: 输入 /keyword 查看关键词回复帮助。 # 插件的帮助信息
-version: v1.3 # 插件版本号。格式：v1.1.1 或者 v1.1
-author: Soulter # 作者
-repo: https://github.com/Soulter/helloworld # 插件的仓库地址
+desc: 支持关键词回复，支持问题模糊。 # 插件简短描述
+help: 插件自动启用，回复 '开始记录'触发或者直接修改json文档。 # 插件的帮助信息
+version: v1.0 # 插件版本号。格式：v1.1.1 或者 v1.1
+author: 长安某 # 作者
+repo: https://github.com/zgojin/astrbot_plugin_QA # 插件的仓库地址
